@@ -1,21 +1,22 @@
-# This tipsbot is dead
-
-V2 coming soon
-
-
-# garlictipsbot
-Garlicoin tipbot built in Python. Probably ready for production use, but I'd give it a few days. Recoded from the ground up, this is version 2. Version 1 will never be spoken of again.
-
 # Instructions
 
-Coming soon. You can probably figure it out for now, the sql file is for MySQL so you will need that on your server. You will also need a full node of whatever software you're running, and the cli program as that's what we use for deposits and withdrawals. While this is for Garlicoin it could very easily be used for other cryptos.
+Coming soon. You can probably figure it out for now, the sql file is for MySQL so you will need that on your server. You will also need a full node of Garlicoin, and the cli program as that's what we use for deposits and withdrawals. While this is for Garlicoin it could very easily be used for other cryptos.
 
-Eventually we will have a config file where we can declare all this, for now just search garlicoin-cli in tipbot.py
+Note the config is in config.json, you will need this information before you can use the bot.
 
-Note the MySQL & Reddit config is in utils.py, you will need this information before you can use the bot.
-
-Also note you will need to run the python programs in some kind of loop, in bash I just do this:
-> while true; do /usr/bin/python /home/monotoko/build/reddit/tipbot.py; sleep 15; done
+Also note you will need to run the python programs in some kind of loop, I have cron jobs to run them every 15 seconds like this:
+* * * * * ( python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
+* * * * * ( python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
+* * * * * ( python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
+* * * * * ( sleep 15 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
+* * * * * ( sleep 15 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
+* * * * * ( sleep 15 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
+* * * * * ( sleep 30 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
+* * * * * ( sleep 30 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
+* * * * * ( sleep 30 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
+* * * * * ( sleep 45 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
+* * * * * ( sleep 45 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
+* * * * * ( sleep 45 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
 
 # Testing
 
