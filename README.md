@@ -5,17 +5,17 @@ Coming soon. You can probably figure it out for now, the sql file is for MySQL s
 Note the config is in config.json, you will need this information before you can use the bot.
 
 Also note you will need to run the python programs in some kind of loop, I have cron jobs to run them every 15 seconds like this:
-&ast; &ast; &ast; &ast; &ast; ( python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 15 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 15 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 15 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 30 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 30 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 30 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 45 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1
-&ast; &ast; &ast; &ast; &ast; ( sleep 45 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1
+&ast; &ast; &ast; &ast; &ast; ( python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 15 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 15 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 15 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 30 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 30 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 30 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 45 ; python3 /opt/scripts/grlctips/deposit.py ) > /dev/null 2>&1  
+&ast; &ast; &ast; &ast; &ast; ( sleep 45 ; python3 /opt/scripts/grlctips/withdraw.py ) > /dev/null 2>&1  
 &ast; &ast; &ast; &ast; &ast; ( sleep 45 ; python3 /opt/scripts/grlctips/tipbot.py ) > /dev/null 2>&1
 
 # Testing
