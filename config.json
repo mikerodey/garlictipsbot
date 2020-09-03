@@ -12,11 +12,14 @@
         "user_agent":"xxxx",
         "username":"xxxx"
     },
+    "grlc":{
+        "rpcuser":"xxxx",
+        "rpcpassword":"xxxx"
+    },
     "other":{
-        "full_dir":"/home/ubuntu/",
+        "full_dir":"/opt/garlicoin-0.17.2",
         "cryptos": { 
-            "1":"garlicoin",
-            "2":"dash"
+            "1":"garlicoin"
         }
     }
 }

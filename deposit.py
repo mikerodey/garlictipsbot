@@ -25,7 +25,7 @@ class deposit():
         me = reddit.user.me()
 
     def all_deposits(self,coin):
-        sql = "SELECT * FROM deposits WHERE coin='%s'"
+        sql = "SELECT * FROM deposits WHERE coin=%s"
         self.cursor.execute(sql, (coin,))
         return self.cursor.fetchall()
 
@@ -35,14 +35,14 @@ class deposit():
 
 
     def check_deposits(self,username,tx_in_db,coin):
-        qcheck = subprocess.check_output(shlex.split('%s/%s/bin/%s-cli listtransactions %s' % (self.utils.config['other']['full_dir'],coin,coin,username)))
+        qcheck = subprocess.check_output(shlex.split('%s/bin/%s-cli -rpcuser=%s -rpcpassword=%s listtransactions grlctipsbot-%s' % (self.utils.config['other']['full_dir'],coin,self.utils.config['grlc']['rpcuser'],self.utils.config['grlc']['rpcpassword'],username))).decode('UTF-8').rstrip('\n')
         txamount = qcheck.count("amount") #TODO: This can be done a lot better.
         
         if txamount > tx_in_db:
             #We have a TX that has not been credited yet
             newtx = self.get_amount_from_json(qcheck,tx_in_db)
             if self.debug:
-                print "More TXs than in DB. We have %s in DB and %s on the blockchain for %s - AMT: %s - COIN: %s" % (tx_in_db, txamount, username, newtx, coin)
+                print("More TXs than in DB. We have %s in DB and %s on the blockchain for %s - AMT: %s - COIN: %s" % (tx_in_db, txamount, username, newtx, coin))
             
             #self.logger.logline("Deposit: More TXs than in DB. We have %s in DB and %s on the blockchain for %s - AMT: %s" % (tx_in_db, txamount, username, newtx))
             sql = "UPDATE deposits SET txs=txs+1 WHERE username=%s AND coin=%s"
@@ -50,9 +50,6 @@ class deposit():
 
             if coin == "garlicoin":
                 sql = "UPDATE amounts SET amount=amount+%s WHERE username=%s"
-                self.cursor.execute(sql, (newtx,username,))
-            elif coin == "dash":
-                sql = "UPDATE amounts SET dashamt=dashamt+%s WHERE username=%s"
                 self.cursor.execute(sql, (newtx,username,))
             return newtx
         else:
@@ -70,9 +67,9 @@ class deposit():
             print("Something went wrong. Please check Reddit for details")
             sys.exit()
  
-	cnt = 1
+        cnt = 1
         for coin in self.utils.config['other']['cryptos'].values():
-	    coin = str(coin)
+            coin = str(coin)
             result = self.all_deposits(coin)
             for row in result:
                 username = row[1]
@@ -80,7 +77,7 @@ class deposit():
                 amt = self.check_deposits(username,tx_in_db,coin)
 
                 if amt != 0:
-                    self.send_messages(username,"Deposit Accepted","Hi, we receieved your %s deposit of %s and it's now in your account. Please send the word balance to the bot to get your current balance if needed or PM /u/ktechmidas if something is amiss" % (coin,amt))
+                    self.send_messages(username,"Deposit Accepted","Hi, we receieved your %s deposit of %s and it's now in your account. Please send the word balance to the bot to get your current balance if needed or PM /u/wcmiker if something is amiss" % (coin,amt))
 
 
 depob = deposit()

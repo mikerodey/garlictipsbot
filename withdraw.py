@@ -25,10 +25,9 @@ class withdraw():
         if amount.startswith("."):
             amount = "0"+amount
             #pdb.set_trace()
-        txid = subprocess.check_output(shlex.split('/home/ubuntu/garlicoin/bin/garlicoin-cli sendtoaddress %s %s' % (address, amount)))
-        qcheck = subprocess.check_output(shlex.split('%s/%s/bin/%s-cli sendtoaddress %s %s' % (self.utils.config['other']['full_dir'],coin,coin,address,amount)))
+        txid = subprocess.check_output(shlex.split('%s/bin/garlicoin-cli -rpcuser=%s -rpcpassword=%s sendtoaddress %s %s' % (self.utils.config['other']['full_dir'],self.utils.config['grlc']['rpcuser'],self.utils.config['grlc']['rpcpassword'],address, amount))).decode('UTF-8').rstrip('\n')
         self.set_confirmed(username,coin)
-        print "Sent %s %s to %s" % (amount,coin,address)
+        print("Sent %s %s to [*%s*](https://insight.garli.co.in/address/%s)" % (amount,coin,address,address))
         return txid
 
     def main(self):
@@ -36,10 +35,9 @@ class withdraw():
             sql = "SELECT * FROM withdraw WHERE confirmed=0 AND coin=%s"
             self.cursor.execute(sql, (coin,))
             result = self.cursor.fetchall()
-            #self.utilsobj.send_messages("ktechmidas","Yo","Test")
             for row in result:
                 txid = self.process_withdrawal(row[2], row[3], row[1],coin)
-                self.utils.send_message(row[1],"Withdrawal Processed","Hi, this is an automated message to let you know your withdrawal has been processed. The %s was sent to %s. \n\nThe TXID is: %s" % (coin,row[2],txid))
+                self.utils.send_message(row[1],"Withdrawal Processed","Hi, this is an automated message to let you know your withdrawal has been processed. The %s was sent to [*%s*](https://insight.garli.co.in/address/%s). \n\nThe TXID is: [%s](https://insight.garli.co.in/tx/%s)" % (coin,row[2],row[2],txid,txid))
             time.sleep(2)
 
 withobj = withdraw()

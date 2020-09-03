@@ -14,12 +14,14 @@ from utils import utils
 import datetime
 import re
 import urllib
+import os
 
 class logger():
 
     def logline(self,tolog):
         now = datetime.datetime.now()
-        with open("tipbot.log", "a") as myfile:
+        dir = os.path.dirname(__file__)
+        with open(os.path.join(dir, "tipbot.log"), "a") as myfile:
             myfile.write("%s: %s\n" % (str(now),tolog))
 
 
@@ -30,42 +32,16 @@ class tipbot():
         self.cursor = self.utils.get_mysql_cursor()
         self.reddit = self.utils.connect_to_reddit()
         self.logger = logger()
-        self.help = """You can send the following commands to the bot by PM. Do not include the [ and ], these are only to make it easier to read for you.\n\n
-* signup - Will sign you up, each account can only run this once.\n
-* balance - Will give you your current tips balance.\n
-* deposit - Will reply with an address which you can deposit garlicoin into.\n
-* withdraw [address] [amount] - Will withdraw the amount you request into the address you request.\n
-* tip [amount] [user] - Tips the user with the amount you request.\n\n
+        self.help = """You can send the following commands to the bot by PM. Do not include the [ and ], these are only to make it easier to read for you. The links below will take you to a pre-filled PM.\n\n
+* [signup](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=signup&message=signup) \- Will sign you up, each account can only run this once. If someone tipped you then that will automatically sign you up so you only need to do this if nobody has previously tipped you.
+* [balance](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=balance&message=balance) \- Provides your current Garlicoin tips balance.
+* [deposit](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=deposit&message=deposit) \- Replies with an address in which you can deposit Garlicoin into to increase your tips balance.
+* [withdraw \[address\] \[amount\]](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=withdraw&message=withdraw%20[address]%20[amount]) \- Withdraw from your tips balance to any Garlicoin address the amount you request.
+* [tip \[amount\] \[user\]](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=tip&message=tip%20[amount]%20[user]) \- Tips the amount of Garlicoin you request to the user.
 
-To tip a user publicly use /u/garlictipsbot [amount] [user] in a reply.\n\n
+To tip a user publicly use /u/grlctipsbot [amount] [user] in a reply.\n\n
 
-If you need any further assistance please PM my creator, /u/ktechmidas"""
-
-    def check_giveaway(self,username):
-        sql = "SELECT * FROM giveaway"
-        self.cursor.execute(sql)
-        if self.cursor.rowcount < 150:
-            sql = "SELECT * FROM giveaway WHERE username=%s"
-            self.cursor.execute(sql, (username,))
-            result = self.cursor.fetchone()
-            if not result:
-                return 0
-            else:
-                return 1
-        else:
-	    self.logger.logline("Giveaway Limit Reached")
-            return 2
-
-    def add_user_to_giveaway(self,username):
-        sql = "INSERT INTO giveaway (username) VALUES (%s)"
-        self.cursor.execute(sql, (username,))
-
-    def get_rates(self):
-        sql = "SELECT * FROM rates WHERE pair='%s'" % ("DASH/GRLC")
-        self.cursor.execute(sql)
-        result = self.cursor.fetchone()
-        return result[2]
-        
+If you need any further assistance please PM my human, /u/wcmiker"""
 
     def does_user_exist(self,username):
         sql = "SELECT * FROM amounts WHERE username=%s"
@@ -77,7 +53,7 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
             return 1
 
     def check_supported_coin(self,coin):
-        supported = ['garlicoin','dash']
+        supported = ['garlicoin']
         if coin in supported:
             return True
         else:
@@ -85,7 +61,7 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
 
     def check_address(self,address):
         #Here we check the address is correct, some users like to give us LTC addresses occasionally...
-        if re.search('^(G|X)[a-zA-Z0-9]{33}$',address):
+        if re.search('^(G|X|M)[a-zA-Z0-9]{33}$',address):
             return True
         else:
             return False
@@ -106,16 +82,6 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
             else:
                 self.logger.logline("modify_user_balance got strange request. Aborting")
                 return 1
-        elif coin == "dash":
-            if pn == "+":
-                sql = "UPDATE amounts SET dashamt=dashamt+%s WHERE username=%s"
-                self.logger.logline("%s's balance has been credited by %s (DASH)" % (username,amt))
-            elif pn == "-":
-                sql = "UPDATE amounts SET dashamt=dashamt-%s WHERE username=%s"
-                self.logger.logline("%s's balance has been deducted by %s (DASH)" % (username,amt))
-            else:
-                self.logger.logline("modify_user_balance got strange request. Aborting")
-                return 1
         else:
             self.logger.logline("modify_user_balance got strange request. Aborting")
             return 1
@@ -125,7 +91,6 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
     def process_withdraw(self,author,address,amt,amtleft,coin,message):
         if amt <= amtleft:
             self.new_withdrawal_request(author,address,amt,coin)
-            message.reply("Hi, your withdrawal request has been accepted! Please note this is a manual process for now. PM my carer /u/ktechmidas if you need it urgently.")
             self.logger.logline("%s has a new withdrawal waiting. AMT: %s %s" % (author,amt,coin))
             return 0
         else:
@@ -138,11 +103,6 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
         self.modify_user_balance("-",username,amount,coin)
         sql = "INSERT INTO withdraw (username, address, amount, confirmed, coin) VALUES (%s, %s, %s, 0, %s)"
         self.cursor.execute(sql, (username,address,amount,coin,))
-
-    def get_dash_for_user(self,username):
-        sql = "SELECT * FROM amounts WHERE username=%s"
-        self.cursor.execute(sql, (username,))
-        return Decimal(self.cursor.fetchone()[3])
 
     def give_user_the_tip(self,sender,receiver,addamt,bank,mention): #o.o
         if addamt >= bank+Decimal(0.01):
@@ -160,18 +120,19 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
                 self.modify_user_balance("+",receiver,addamt)
                 mstr = str(receiver)+" "+str(addamt) #Probably no need for this, holdover from recode.
                 try:
-                    self.reddit.comment(id=mention.id).reply("Yay! You gave /u/%s garlicoin, hopefully they can now create some tasty garlic bread.\n***\n^^Wow ^^so ^^tasty ^^|| ^^I ^^now ^^support ^^exchange ^^from ^^and ^^to ^^other ^^cryptos [^^click ^^here](https://www.reddit.com/r/garlicoin/comments/7wehii/ugarlictipsbot_a_giveaway_important_news/) ^^|| [^^Need ^^help?](https://www.reddit.com/message/compose/?to=garlictipsbot&subject=help&message=help) ^^|| [^^Dogecoin ^^partnership ^^coming ^^soon](https://np.reddit.com/r/garlicoin/comments/7u0z1w/garlictipsbot_recodeopen_sourceimportant_news/)" % (mstr))
+                    self.reddit.comment(id=mention.id).reply("Yay! You gave /u/%s Garlicoin, hopefully they can now create some tasty garlic bread. \n\n[Need help?](https://np.reddit.com/message/compose/?to=grlctipsbot&subject=help&message=help) \n\n[Garlicoin subreddit](https://np.reddit.com/r/garlicoin/)" % (mstr))
                 except:
                     self.logger.logline("Reddit doesn't seem to be responding right now...died on comment for existing user.")
-                    #traceback.print_exc()
+                    traceback.print_exc()
             else:
                 self.create_account(receiver)
                 self.modify_user_balance("+",receiver,addamt)
                 try:
-                    self.reddit.comment(id=mention.id).reply("Yay! You gave /u/%s %s garlicoin, hopefully they can now create some tasty garlic bread. If %s doesn't know what it is, they should read [this thread](https://np.reddit.com/r/garlicoin/comments/7smsu0/introducing_ugarlictipsbot/)\n***\n^^Wow ^^so ^^tasty ^^|| ^^I ^^now ^^support ^^exchange ^^from ^^and ^^to ^^other ^^cryptos [^^click ^^here](https://www.reddit.com/r/garlicoin/comments/7wehii/ugarlictipsbot_a_giveaway_important_news/) ^^|| [^^Need ^^help?](https://www.reddit.com/message/compose/?to=garlictipsbot&subject=help&message=help) ^^|| [^^Dogecoin ^^partnership ^^coming ^^soon](https://np.reddit.com/r/garlicoin/comments/7u0z1w/garlictipsbot_recodeopen_sourceimportant_news/)" % (receiver, addamt, receiver))
-                    self.utils.send_message(receiver,'Welcome to Garlicoin',"%s gave you some Garlicoin, we have added your new found riches to an account in your name on garlictipsbot. You can get the balance by messaging this bot with the word balance on it's own (in a new message, not as a reply to this one!) \n\nYou can also send tips to others or withdraw to your own garlicoin wallet. If there are any issues please PM /u/ktechmidas" % mention.author)
+                    self.reddit.comment(id=mention.id).reply("Yay! You gave /u/%s %s garlicoin, hopefully they can now create some tasty garlic bread. If %s doesn't know what it is, they should visit the [Garlicoin subreddit](https://np.reddit.com/r/garlicoin/) \n\n[Need help?](https://np.reddit.com/message/compose/?to=grlctipsbot&subject=help&message=help)" % (receiver, addamt, receiver))
+                    self.utils.send_message(receiver,'Welcome to Garlicoin',"%s gave you some Garlicoin, we have added your new found riches to an account in your name on grlctipsbot. You can get the balance by messaging this bot with the word balance on its own (in a new message, not as a reply to this one!). [Click here for a pre-filled PM for the balance command](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=balance&message=balance).\n\nYou can also send tips to others or withdraw to your own garlicoin wallet, send the bot the word [help](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=help&message=help) to see how to do this. If there are any issues please PM /u/wcmiker" % mention.author)
                 except:
                     self.logger.logline("Reddit doesn't seem to be responding right now...died on comment & sendmsg for new user.")
+                    traceback.print_exc()
 
     def give_user_the_tip_pm(self,sender,receiver,addamt,bank,message):
         if addamt >= bank+Decimal(0.01):
@@ -183,24 +144,26 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
                 self.logger.logline("Bot was unable to comment, perhaps rate limited?")
         else:
             self.modify_user_balance("-",sender,addamt)
-            self.add_history_entry(sender,receiver,addamt,mention.id)
+            self.add_history_entry(sender,receiver,addamt,message.id)
 
             if self.does_user_exist(receiver) == 1:
                 self.modify_user_balance("+",receiver,addamt)
                 mstr = str(receiver)+" "+str(addamt) #Probably no need for this, holdover from recode.
                 try:
-                    message.reply("Yay! You gave /u/%s garlicoin, hopefully they can now create some tasty garlic bread." % (mstr))
-                    self.utils.send_message(receiver,'Welcome to Garlicoin',"%s gave you some Garlicoin via PM" % (message.author))
+                    message.reply("Yay! You gave /u/%s Garlicoin, hopefully they can now create some tasty garlic bread." % (mstr))
+                    self.utils.send_message(receiver,'Welcome to Garlicoin',"%s gave you %s Garlicoin via PM" % (message.author, addamt))
                 except:
                     self.logger.logline("Reddit doesn't seem to be responding right now...died on comment for existing user.")
+                    traceback.print_exc()
             else:
                 self.create_account(receiver)
                 self.modify_user_balance("+",receiver,addamt)
                 try:
-                    message.reply("Yay! You gave /u/%s %s garlicoin, hopefully they can now create some tasty garlic bread. If %s doesn't know what it is, they should read [this thread](https://www.reddit.com/r/garlicoin/comments/7smsu0/introducing_ugarlictipsbot/)" % (receiver, addamt, receiver))
-                    self.utils.send_message(receiver,'Welcome to Garlicoin',"%s gave you some Garlicoin, we have added your new found riches to an account in your name on garlictipsbot. You can get the balance by messaging this bot with the word balance on it's own (in a new message, not as a reply to this one!) \n\nYou can also send tips to others or withdraw to your own garlicoin wallet, send the bot the word 'help' to see how to do this. If there are any issues please PM /u/ktechmidas" % message.author)
+                    message.reply("Yay! You gave /u/%s %s Garlicoin, hopefully they can now create some tasty garlic bread. If %s doesn't know what it is, they should visit the [Garlicoin subreddit](https://www.reddit.com/r/garlicoin/)" % (receiver, addamt, receiver))
+                    self.utils.send_message(receiver,'Welcome to Garlicoin',"%s gave you some Garlicoin, we have added your new found riches to an account in your name on grlctipsbot. You can get the balance by messaging this bot with the word balance on its own (in a new message, not as a reply to this one!). [Click here for a pre-filled PM for the balance command](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=balance&message=balance).\n\nYou can also send tips to others or withdraw to your own garlicoin wallet, send the bot the word [help](https://www.reddit.com/message/compose/?to=grlctipsbot&subject=help&message=help) to see how to do this. If there are any issues please PM /u/wcmiker" % message.author)
                 except:
                     self.logger.logline("Reddit doesn't seem to be responding right now...died on comment & sendmsg for new user.")
+                    traceback.print_exc()
 
     def new_deposit(self,username,coin='garlicoin'): #If the user hasn't deposited with us before, he gets a flag created, else just do nothing because the flag is already there.
         sql = "SELECT * FROM deposits WHERE username=%s AND coin=%s"
@@ -237,19 +200,23 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
         self.cursor.execute(sql, (sender,receiver,amt,mention,))
 
     def get_new_address(self,username,coin):
-        return subprocess.check_output(shlex.split('%s/%s/bin/%s-cli getnewaddress %s' % (self.utils.config['other']['full_dir'],coin,coin,username)))
+        return subprocess.check_output(shlex.split('%s/bin/%s-cli -rpcuser=%s -rpcpassword=%s getnewaddress grlctipsbot-%s' % (self.utils.config['other']['full_dir'],coin,self.utils.config['grlc']['rpcuser'],self.utils.config['grlc']['rpcpassword'],username))).decode('UTF-8').rstrip('\n')
 
     def process_mention(self,mention):
         #print('{}\n{}\n'.format(mention.author, mention.body))
         self.logger.logline('{}\n{}\n'.format(mention.author, mention.body))
         todo = mention.body.split()
-        needle = todo.index("/u/garlictipsbot") #Need to find this in multiple ways, currently tripping on u/ and capital letters.
-        sender = mention.author
+        todo_lower = [item.lower() for item in todo]
+        try:
+            needle = todo_lower.index("/u/grlctipsbot") #Need to find this in multiple ways, currently tripping on u/ and capital letters.
+        except:
+            needle = todo_lower.index("u/grlctipsbot")
+        sender = mention.author.name.replace("\\", "")
         addamt = todo[needle+1]
-        receiver = todo[needle+2]
+        receiver = todo[needle+2].replace("\\", "")
 
         #Ensure we don't have /u/ on receiver
-        if receiver.count("/u/") == 1:
+        if receiver.lower().count("/u/") == 1:
             receiver = receiver.replace(receiver[:3],'')
         addamt = Decimal(addamt)
 
@@ -265,115 +232,68 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
         author = message.author
         self.logger.logline("%s issued command %s" % (author,command))
         userexists = self.does_user_exist(author)
-        if command not in ['signup', 'free'] and not userexists:
-            message.reply("Hi! This bot doesn't know who you are. Please PM the word 'signup' in a new message if you would like to start using the bot. If you think you should have a balance here please PM my carer /u/ktechmidas")
+        if command not in ['signup'] and not userexists:
+            message.reply("Hi! This bot doesn't know who you are. Please PM the word 'signup' in a new message if you would like to start using the bot. If you think you should have a balance here please PM my human /u/wcmiker")
             return 2
         if command == "signup":
             if userexists == 0:
                 self.create_account(author)
-                message.reply("Hi! You have successfully signed up! You can check by sending the word balance in a new message to /u/garlictipsbot or send deposit to deposit some delicious garlic")
+                message.reply("Hi! You have successfully signed up! You can check by sending the word balance in a new message to /u/grlctipsbot or send deposit to deposit some delicious garlic")
             else:
-                message.reply("Hi. You already have an account so we cannot sign you up again. Please send the word balance in a new message to /u/garlictipsbot to find your balance")
+                message.reply("Hi. You already have an account so we cannot sign you up again. Please send the word balance in a new message to /u/grlctipsbot to find your balance")
         elif command == "balance":
             balance = self.get_amount_for_user(author)
-            dash = self.get_dash_for_user(author) #Will combine get_amount_for_user and get_dash_for_user in a future release
-            self.logger.logline("%s requested their balance. AMT: %s Dash: %s" % (author,balance,dash))
-            if dash == 0:
-                message.reply("Your Garlicoin balance is %s" % balance)
-            else:
-                message.reply("Your Garlicoin balance is %s\n\n Your Dash balance is %s" % (balance,dash))
+            self.logger.logline("%s requested their balance. AMT: %s" % (author,balance))
+            message.reply("Your Garlicoin balance is %s" % balance)
         elif command == "deposit":
             self.new_deposit(author)
             addy = self.get_new_address(author,"garlicoin")
-            message.reply("Hi! Our cooks have generated a deposit address just for you, it is: %s \n\n Once you have sent some garlicoin please be patient while it appears in your account.\n\n **NOTE:** You may have to wait 10-15 minutes after depositing due to the way I check deposits, this may be changing soon." % (addy))
+            self.logger.logline("%s was assigned address %s" % (author,addy))
+            message.reply("Hi! Our cooks have generated a deposit address just for you, it is: *%s* \n\nOnce you have sent some Garlicoin please be patient while it appears in your account." % (addy))
         elif command == "help":
             message.reply(self.help)
-        elif command == "rates":
-            amt = self.get_rates()
-            message.reply("The current rate is \n[Dash/GRLC <>  %s]" % (round(amt,2)))
-        elif command == "free":
-            chk = self.check_giveaway(author)
-            if chk == 0:
-                if userexists == 0:
-                    self.create_account(author)
-                self.modify_user_balance("+",author,"0.2")
-                self.add_user_to_giveaway(author)
-                message.reply("You've successfully claimed your 0.2 free Garlicoin, please send me a new PM (not a reply) with help or balance to see your new balance.")
-                
-            elif chk == 2:
-                message.reply("Sorry, this giveaway expired!")
         else:
             message.reply("Sorry! I did not understand the command you gave. Please write a new PM (not reply) with help and I will reply with what I accept.")
 
     def process_multi_command(self,message,command):
         author = message.author
+        self.logger.logline("%s issued command %s" % (author,command))
         userexists = self.does_user_exist(author)
         if userexists == 0:
             self.logger.logline("%s tried to issue command %s while not signed up" % (author,command))
-            message.reply("Hi! This bot doesn't know who you are. Please PM the word 'signup' in a new message if you would like to start using the bot. If you think you should have a balance here please PM my carer /u/ktechmidas")
+            message.reply("Hi! This bot doesn't know who you are. Please PM the word 'signup' in a new message if you would like to start using the bot. If you think you should have a balance here please PM my human /u/wcmiker")
         msgsplit = message.body.split()
         msgsplit[0] = msgsplit[0].lower()
         self.logger.logline("%s issued command %s" % (author,message.body))
         if msgsplit[0] == "deposit":
             coin = msgsplit[1].lower()
             if not self.check_supported_coin(coin):
-                message.reply("You tried to deposit an unsupported coin, right now we only support Garlicoin and Dash")
+                message.reply("You tried to deposit an unsupported coin, right now we only support Garlicoin")
                 raise Exception
             self.new_deposit(author,coin)
             addy = self.get_new_address(author,coin)
-            message.reply("Hi! Our cooks have generated a deposit address just for you, it is: %s \n\n Once you have sent some %s please be patient while it appears in your account.\n\n **NOTE:** You may have to wait 10-15 minutes after depositing due to the way I check deposits, this may be changing soon." % (addy,coin))
+            self.logger.logline("%s was assigned address %s" % (author,addy))
+            message.reply("Hi! Our cooks have generated a deposit address just for you, it is: *%s* \n\nOnce you have sent some %s please be patient while it appears in your account." % (addy,coin))
 
         if msgsplit[0] == "withdraw":
             try:
                 address = msgsplit[1]
                 amt = Decimal(msgsplit[2])
             except:
-                message.reply("You don't seem to have sent me an amount or address, please resend in the format withdraw address amount - PM /u/ktechmidas for help if you need it.")
+                message.reply("You don't seem to have sent me an amount or address, please resend in the format withdraw address amount - PM /u/wcmiker for help if you need it.")
                 self.logger.logline("%s sent invalid amount" % (author))
                 return 1
             try:
                 if not self.check_address(address):
                     raise Exception #Objection!
 
-                if address.startswith("G"): #Our favourite coin, right?
+                if address.startswith("G") or address.startswith("g") or address.startswith("M"): #Our favourite coin, right?
                     amtleft = self.get_amount_for_user(author)
                     self.process_withdraw(author,address,amt,amtleft,"garlicoin",message)
-                elif address.startswith("X"): #Get dashing
-                    amtleft = self.get_dash_for_user(author)
-                    self.process_withdraw(author,address,amt,amtleft,"dash",message)
 
             except:
                 message.reply("It appears you tried to send a withdrawal request, but we couldn't figure out the format. Please resend it as 'withdraw address amount' - It's also possible you gave an invalid Garlicoin address, please check it.")
                 traceback.print_exc()
-        elif msgsplit[0] == "exchange":
-            crypto_from = msgsplit[2].upper()
-            crypto_to = msgsplit[4].upper()
-            amount = Decimal(msgsplit[1])
-            pair = "%s/%s" % (crypto_from,crypto_to)
-            sql = "SELECT * FROM rates WHERE pair='%s'" % (pair)
-            self.cursor.execute(sql)
-            result = self.cursor.fetchone()
-            if not result:
-                message.reply("The currency you want to exchange from or to is unavailable at this time. This could be due to suspension of trading or non-supported currency pairs.")
-                raise Exception
-            rate = Decimal(result[2]) #10 GRLC to Dash is 0.0045
-            amttoconvertto = amount * rate
-
-            if crypto_from == "GRLC":
-                balance = self.get_amount_for_user(author)
-                if balance+Decimal(0.1) > amount:
-                    self.modify_user_balance('-',author,amount)
-                    self.modify_user_balance('+',author,amttoconvertto,crypto_to)
-                    message.reply("Hi, your %s GRLC has successfully been converted to %s Dash at a rate of %s. If there are any issues with this or the amounts don't look correct, please PM /u/ktechmidas" % (amount,amttoconvertto,rate))
-            elif crypto_from == "DASH":
-                balance = self.get_dash_for_user(author)
-                if balance+Decimal(0.00001) > amount:
-                    self.modify_user_balance('-',author,amount,'DASH')
-                    self.modify_user_balance('+',author,amttoconvertto)
-                    message.reply("Hi, your %s Dash has successfully been converted to %s GRLC at a rate of %s. If there are any issues with this or the amounts don't look correct, please PM /u/ktechmidas" % (amount,amttoconvertto,rate))
-
-
-
         elif msgsplit[0] == "tip":
             #The user wants to tip another privately, that's cool, we can do that too.
             try:
@@ -389,7 +309,7 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
                 return 1
         
             bank = self.get_amount_for_user(author)
-            self.give_user_the_tip_pm(self,sender,receiver,addamt,bank,mention) #o.o
+            self.give_user_the_tip_pm(author,receiver,addamt,bank,message)
 
 
     def check_messages(self):
@@ -407,7 +327,6 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
                         self.process_multi_command(indmessage,command)
                 except Exception as ex:
                     print("Something went wrong processing commands...skipping this one")
-                    #print(ex)
                     traceback.print_exc()
         self.reddit.inbox.mark_read(unread)
 
@@ -417,11 +336,12 @@ If you need any further assistance please PM my creator, /u/ktechmidas"""
 
         try:
             me = self.reddit.user.me()
-        except:
+        except Exception as ex:
             print("Something went wrong. Please check Reddit for details")
+            traceback.print_exc()
             sys.exit()
 
-        if me != "garlictipsbot":
+        if me != "grlctipsbot":
             print("Not the correct user. Aborting!")
 
         #First we check any mentions in comments so we can do the tipping, then check the private messages of the bot.

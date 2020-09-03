@@ -8,11 +8,13 @@ from decimal import *
 import subprocess
 import shlex
 import argparse
+import os
 
 class utils():
 
     def __init__(self):
-        with open('config.json', 'r') as f:
+        dir = os.path.dirname(__file__)
+        with open(os.path.join(dir, 'config.json'), 'r') as f:
             self.config = json.load(f)
         self.debug = 1
 

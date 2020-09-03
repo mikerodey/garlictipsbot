@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS `amounts`;
 CREATE TABLE `amounts` (
   `aid` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(45) DEFAULT NULL,
-  `amount` decimal(10,6) DEFAULT NULL,
+  `amount` decimal(14,6) DEFAULT NULL,
   `dashamt` decimal(10,6) DEFAULT '0.000000',
   PRIMARY KEY (`aid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1709 DEFAULT CHARSET=latin1;
@@ -56,7 +56,7 @@ DROP TABLE IF EXISTS `deposits`;
 CREATE TABLE `deposits` (
   `depid` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(40) DEFAULT NULL,
-  `amount` decimal(8,6) DEFAULT NULL,
+  `amount` decimal(14,6) DEFAULT NULL,
   `txs` int(11) DEFAULT NULL,
   `coin` varchar(20) DEFAULT 'garlicoin',
   PRIMARY KEY (`depid`)
@@ -88,7 +88,7 @@ CREATE TABLE `history` (
   `hid` int(11) NOT NULL AUTO_INCREMENT,
   `sender` varchar(40) DEFAULT NULL,
   `recv` varchar(40) DEFAULT NULL,
-  `amount` float(8,6) DEFAULT NULL,
+  `amount` float(14,6) DEFAULT NULL,
   `mention` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`hid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=932 DEFAULT CHARSET=latin1;
@@ -139,7 +139,7 @@ CREATE TABLE `withdraw` (
   `wid` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(40) DEFAULT NULL,
   `address` varchar(40) DEFAULT NULL,
-  `amount` varchar(10) DEFAULT NULL,
+  `amount` varchar(20) DEFAULT NULL,
   `confirmed` int(11) DEFAULT NULL,
   `coin` varchar(20) DEFAULT 'garlicoin',
   PRIMARY KEY (`wid`)
